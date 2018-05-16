@@ -1,0 +1,27 @@
+{
+    "name": "quicktype-custom-csharp-example",
+    "version": "0.0.1",
+    "main": "dist/app.js",
+    "bin": "dist/app.js",
+    "homepage": "https://github.com/quicktype/quicktype-custom-csharp-example",
+    "repository": "https://github.com/quicktype/quicktype-custom-csharp-example.git",
+    "scripts": {
+        "start": "ts-node app.ts",
+        "prepack": "tsc",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "license": "Apache-2.0",
+    "devDependencies": {
+        "@types/node": "^10.1.0",
+        "ts-node": "^6.0.3",
+        "typescript": "^2.8.3"
+    },
+    "dependencies": {
+        "quicktype-core": "^2.0.2"
+    },
+    "files": [
+        "package.json",
+        "README.md",
+        "dist/**"
+    ]
+}
