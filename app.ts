@@ -18,7 +18,9 @@ import {
     JSONSchema,
     Ref,
     JSONSchemaType,
-    JSONSchemaAttributes
+    JSONSchemaAttributes,
+    ClassProperty,
+    Name
 } from "quicktype-core";
 
 /**
@@ -86,6 +88,43 @@ function gameObjectAttributeProducer(
     return { forType: gameObjectTypeAttributeKind.makeAttributes(isGameObject) };
 }
 
+class DefaultValueTypeAttributeKind extends TypeAttributeKind<any> {
+    constructor() {
+        super("propertyDefaults");
+    }
+
+    combine(attrs: any[]): any {
+        const a = attrs[0];
+        for (let i = 1; i < attrs.length; i++) {
+            if (a !== attrs[i]) {
+                throw new Error("Inconsistent default values");
+            }
+        }
+        return a;
+    }
+
+    makeInferred(_: any): undefined {
+        return undefined;
+    }
+
+    stringify(v: any): string {
+        return JSON.stringify(v.toObject());
+    }
+}
+
+const defaultValueTypeAttributeKind = new DefaultValueTypeAttributeKind();
+
+function propertyDefaultsAttributeProducer(schema: JSONSchema): JSONSchemaAttributes | undefined {
+    // booleans are valid JSON Schemas, too, but we won't produce our
+    // attribute for them.
+    if (typeof schema !== "object") return undefined;
+
+    // Don't make an attribute if there's no default property.
+    if (typeof schema.default === undefined) return undefined;
+
+    return { forType: defaultValueTypeAttributeKind.makeAttributes(schema.default) };
+}
+
 class GameCSharpTargetLanguage extends CSharpTargetLanguage {
     constructor() {
         super("C#", ["csharp"], "cs");
@@ -106,6 +145,16 @@ class GameCSharpRenderer extends CSharpRenderer {
         const isGameObject = gameObjectTypeAttributeKind.tryGetInAttributes(attributes);
         return isGameObject ? "GameObject" : undefined;
     }
+
+    protected propertyDefinition(p: ClassProperty, name: Name, c: ClassType, jsonName: string): Sourcelike {
+        const originalDefinition = super.propertyDefinition(p, name, c, jsonName);
+        // The property's type attributes
+        const attributes = p.type.getAttributes();
+        const v = defaultValueTypeAttributeKind.tryGetInAttributes(attributes);
+        // If we don't have a default value, return the original definition
+        if (v === undefined) return originalDefinition;
+        return [originalDefinition, " = ", JSON.stringify(v), ";"];
+    }
 }
 
 async function main(program: string, args: string[]): Promise<void> {
@@ -118,7 +167,8 @@ async function main(program: string, args: string[]): Promise<void> {
     const source = { name: "Player", schema: fs.readFileSync(args[0], "utf8") };
 
     // We need to pass the attribute producer to the JSONSchemaInput
-    await inputData.addSource("schema", source, () => new JSONSchemaInput(undefined, [gameObjectAttributeProducer]));
+    const producers = [gameObjectAttributeProducer, propertyDefaultsAttributeProducer];
+    await inputData.addSource("schema", source, () => new JSONSchemaInput(undefined, producers));
 
     const lang = new GameCSharpTargetLanguage();
 
@@ -129,4 +179,7 @@ async function main(program: string, args: string[]): Promise<void> {
     }
 }
 
-main(process.argv[1], process.argv.slice(2));
+main(process.argv[1], process.argv.slice(2)).catch(e => {
+    console.error(e);
+    process.exit(1);
+});
