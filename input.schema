@@ -1,14 +1,26 @@
 {
-    "$ref": "#/definitions/List",
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/Player",
     "definitions": {
-        "List": {
+        "Player": {
             "type": "object",
             "properties": {
-                "next_node": {
-                    "$ref": "#/definitions/List"
-                }
+                "name": { "type": "string", "default": "Emmerich" },
+                "position": { "$ref": "#/definitions/Coordinates" },
+                "hitPoints": { "type": "integer", "default": 100 }
             },
-            "title": "List"
+            "required": ["name", "position", "hitPoints"],
+            "additionalProperties": false,
+            "gameObject": true
+        },
+        "Coordinates": {
+            "type": "object",
+            "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" }
+            },
+            "required": ["x", "y"],
+            "additionalProperties": false
         }
     }
 }
